@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lazy Guy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"
+        integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        #mouse-pad {
+            height: 280px;
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+        <div class="p-4">
+            <h1 class="display-6">Lazy Guy</h1>
+            <div>
+                <div id="mouse-pad" class="shadow-lg bg-dark rounded-top mt-4">
+                </div>
+                <div class="btn-group col-12" role="group" aria-label="Basic example">
+                    <button type="button" class="btn btn-outline-dark rounded-0"
+                        onclick="mousepad({click_type: 'left'})">Left</button>
+                    <button type="button" class="btn btn-outline-dark rounded-0"
+                        onclick="mousepad({click_type: 'right'})">Right</button>
+                </div>
+            </div>
+        </div>
+    </center>
+    <script>
+
+        var socket = null
+
+        function mousepadSocket() {
+            socket = io('http://192.168.43.248:4000')
+            socket.emit('connected', 'lazy-boy')
+            socket.on('done', obj => {
+                console.log(obj)
+            })
+        }
+
+        function mousepad(data) {
+            socket.emit('move', data)
+        }
+
+        let clientX = 0, clientY = 0
+
+        function addMouseEvents() {
+            let mouse_pad = document.querySelector('#mouse-pad')
+
+            mouse_pad.addEventListener("touchstart", (e) => {
+                let x = e.touches[0].clientX
+                let y = e.touches[0].clientY
+                clientX = x
+                clientY = y
+            })
+            mouse_pad.addEventListener("touchend", (e) => {
+                let x = e.changedTouches[0].pageX - clientX
+                let y = e.changedTouches[0].pageY - clientY
+                socket.emit('move', { x, y })
+            })
+
+            // left mouse click
+            let tapedTwice = false
+            mouse_pad.addEventListener("touchstart", (e) => {
+                if (!tapedTwice) {
+                    tapedTwice = true
+                    setTimeout(() => {
+                        tapedTwice = false
+                    }, 300)
+                    return false
+                }
+                mousepad({ click_type: 'left' })
+            })
+
+            //  right mouse click
+            let timer = null
+            mouse_pad.addEventListener('touchstart', () => {
+                timer = setTimeout(() => {
+                    timer = null
+                    mousepad({ click_type: 'right' })
+                }, 500);
+            })
+            function cancel() {
+                clearTimeout(timer);
+            }
+            mouse_pad.addEventListener('touchend', cancel);
+            mouse_pad.addEventListener('touchmove', cancel);
+
+        }
+
+        $(document).ready(function () {
+            addMouseEvents()
+            mousepadSocket()
+        })
+    </script>
+</body>
+
+</html>
